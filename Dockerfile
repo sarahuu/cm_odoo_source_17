@@ -4,6 +4,8 @@ LABEL maintainer="Sarah Unokerieghan <sarahunoke@gmail.com>"
 SHELL ["/bin/bash", "-xo", "pipefail", "-c"]
 ENV LANG=en_US.UTF-8
 ARG TARGETARCH
+ARG ODOO_UID=1001
+ARG ODOO_GID=1001
 
 RUN sed -i 's|http://archive.ubuntu.com/ubuntu/|http://mirrors.edge.kernel.org/ubuntu/|g' /etc/apt/sources.list && \
     apt-get update && \
@@ -47,8 +49,11 @@ RUN if [ -z "${TARGETARCH}" ]; then \
     apt-get install -y --no-install-recommends ./wkhtmltox.deb && \
     rm wkhtmltox.deb
 
-RUN useradd -m -d /home/odoo -U -r -s /bin/bash odoo
-RUN mkdir -p /etc/odoo /var/lib/odoo /mnt/extra-addons
+RUN groupadd -r -g ${ODOO_GID} odoo && \
+    useradd -m -d /home/odoo -u ${ODOO_UID} -g odoo -s /bin/bash odoo
+
+RUN mkdir -p /etc/odoo /var/lib/odoo /mnt/extra-addons && \
+    chown ${ODOO_UID}:${ODOO_GID} /etc/odoo /var/lib/odoo /mnt/extra-addons
 
 COPY requirements.txt ./
 RUN pip3 install --upgrade pip setuptools wheel && \
@@ -58,7 +63,7 @@ RUN pip3 install --upgrade pip setuptools wheel && \
         gevent==22.10.2 \
         python-ldap
 
-COPY --chown=odoo:odoo . /odoo
+COPY --chown=${ODOO_UID}:${ODOO_GID} . /odoo
 WORKDIR /odoo
 
 COPY ./odoo.conf /etc/odoo/odoo.conf
@@ -66,16 +71,13 @@ COPY ./entrypoint.sh /entrypoint.sh
 COPY wait-for-psql.py /usr/local/bin/wait-for-psql.py
 RUN chmod +x /entrypoint.sh /usr/local/bin/wait-for-psql.py
 
-USER root
-RUN mkdir -p /mnt/extra-addons && \
-    chown -R odoo /mnt/extra-addons && \
-    chown odoo /etc/odoo/odoo.conf &&\
-    chown -R odoo /var/lib/odoo
+RUN chown -R ${ODOO_UID}:${ODOO_GID} /mnt/extra-addons /var/lib/odoo && \
+    chmod 750 /etc/odoo /var/lib/odoo /mnt/extra-addons
 
 VOLUME ["/var/lib/odoo", "/mnt/extra-addons"]
 EXPOSE 8069 8071 8072
 ENV ODOO_RC=/etc/odoo/odoo.conf
 
-USER odoo
+USER ${ODOO_UID}:${ODOO_GID}
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["odoo"]
