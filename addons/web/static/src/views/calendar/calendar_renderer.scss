@@ -373,8 +373,7 @@
             .fc-content-skeleton {
                 --o-cw-circle-padding: calc(#{map-get($spacers, 1 )} / 2);
                 --o-cw-color: var(--body-color);
-
-                height: 100%;
+                // height: 100%;
                 padding-bottom: 0;
 
                 .fc-week-number {
