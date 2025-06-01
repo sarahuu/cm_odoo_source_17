@@ -14,7 +14,7 @@
         </t>
     </template>
 
-    <template id="web.layout" name="Web layout">&lt;!DOCTYPE html&gt;
+    <template id="web.layout" name="Web layout">
 <html t-att="html_data or {}">
     <head>
         <meta charset="utf-8"/>
